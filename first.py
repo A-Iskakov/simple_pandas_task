@@ -46,7 +46,8 @@ with open('data_task4_old.txt', 'r', ) as csv_file:
     ])
 
     # группируем вводную таблицу по номеру логина
-    for i, (login, group) in tqdm.tqdm(enumerate(data.groupby('login'))):
+    for i, (login, group) in tqdm.tqdm(enumerate(data.groupby('login')),
+                                       desc="Подсчет показателей для каждого пользователя"):
         # сортируем все задания в группе по времени начала
         group.sort_values(by='assigned_ts', inplace=True)
 
