@@ -36,64 +36,64 @@ with open('data_task4_old.txt', 'r', ) as csv_file:
                        infer_datetime_format=True
                        )
 
-    pd.set_option("min_rows", 25)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.max_rows', 25)
+pd.set_option("min_rows", 25)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', 25)
 
-    # создаем датафрейм для итоговых результатов
-    final_result_dataframe = pd.DataFrame(columns=[
-        "login", "active_time", "time_per_one_microtask", 'payment_per_one_microtask'
-    ])
+# создаем датафрейм для итоговых результатов
+final_result_dataframe = pd.DataFrame(columns=[
+    "login", "active_time", "time_per_one_microtask", 'payment_per_one_microtask'
+])
 
-    # группируем вводную таблицу по номеру логина
-    for i, (login, group) in tqdm.tqdm(enumerate(data.groupby('login')),
-                                       desc="Подсчет показателей для каждого пользователя"):
-        # сортируем все задания в группе по времени начала
-        group.sort_values(by='assigned_ts', inplace=True)
+# группируем вводную таблицу по номеру логина
+for i, (login, group) in tqdm.tqdm(enumerate(data.groupby('login')),
+                                   desc="Подсчет показателей для каждого пользователя"):
+    # сортируем все задания в группе по времени начала
+    group.sort_values(by='assigned_ts', inplace=True)
 
-        # сбрасываем исходные индексы в группе
-        group.reset_index(inplace=True)
+    # сбрасываем исходные индексы в группе
+    group.reset_index(inplace=True)
 
-        # получаем метки для выявления цепочек непрерывных заданий исходя из того что текущее задание началось после
-        # окончания предыдущего
-        group['is_start_of_new_sequence'] = group['assigned_ts'] > group['closed_ts'].shift(1)
+    # получаем метки для выявления цепочек непрерывных заданий исходя из того что текущее задание началось после
+    # окончания предыдущего
+    group['is_start_of_new_sequence'] = group['assigned_ts'] > group['closed_ts'].shift(1)
 
-        # из-за сдвига отдельно отмечаем первую строчку
-        group.loc[0, 'is_start_of_new_sequence'] = True
+    # из-за сдвига отдельно отмечаем первую строчку
+    group.loc[0, 'is_start_of_new_sequence'] = True
 
-        # для каждого задания, которое является началом цепочки непрерывных заданий
-        # выявляем время окончания данной цепочки
-        group.loc[group['is_start_of_new_sequence'] == True, 'sequence_closed_ts'] = group.loc[
-            group['is_start_of_new_sequence'].shift(-1) == True, 'closed_ts'].append(group.tail(1)['closed_ts']).values
+    # для каждого задания, которое является началом цепочки непрерывных заданий
+    # выявляем время окончания данной цепочки
+    group.loc[group['is_start_of_new_sequence'] == True, 'sequence_closed_ts'] = group.loc[
+        group['is_start_of_new_sequence'].shift(-1) == True, 'closed_ts'].append(group.tail(1)['closed_ts']).values
 
-        # на основе времени начала и окончания цепочки выявляем общую продолжительность работы
-        active_time = (group.loc[group['is_start_of_new_sequence'] == True, 'sequence_closed_ts'] - group.loc[
-            group['is_start_of_new_sequence'] == True, 'assigned_ts']).sum()
+    # на основе времени начала и окончания цепочки выявляем общую продолжительность работы
+    active_time = (group.loc[group['is_start_of_new_sequence'] == True, 'sequence_closed_ts'] - group.loc[
+        group['is_start_of_new_sequence'] == True, 'assigned_ts']).sum()
 
-        # находим сумму микрозаданий по пользователю
-        microtask_count = group['Microtasks'].sum()
+    # находим сумму микрозаданий по пользователю
+    microtask_count = group['Microtasks'].sum()
 
-        # находим среднюю продолжительно выполнения микрозадания
-        time_per_one_microtask = active_time / microtask_count
+    # находим среднюю продолжительно выполнения микрозадания
+    time_per_one_microtask = active_time / microtask_count
 
-        # исходя из того, что асессор за 30 секунд своего рабочего времени получает N рублей.
-        # вычисляем оплату за выполнение асессором одного микрозадания
-        payment_per_one_microtask = f'{np.round(time_per_one_microtask / pd.Timedelta(seconds=30), 2)}N RUR'
+    # исходя из того, что асессор за 30 секунд своего рабочего времени получает N рублей.
+    # вычисляем оплату за выполнение асессором одного микрозадания
+    payment_per_one_microtask = f'{np.round(time_per_one_microtask / pd.Timedelta(seconds=30), 2)}N RUR'
 
-        # записываем финальный результат в датафрейм
-        final_result_dataframe.loc[i] = [login, active_time, time_per_one_microtask, payment_per_one_microtask]
+    # записываем финальный результат в датафрейм
+    final_result_dataframe.loc[i] = [login, active_time, time_per_one_microtask, payment_per_one_microtask]
 
-    # приводим время в читаемый формат перед экспортом
-    final_result_dataframe['active_time'] = final_result_dataframe['active_time'].astype(str)
-    final_result_dataframe['time_per_one_microtask'] = final_result_dataframe['time_per_one_microtask'].astype(str)
+# приводим время в читаемый формат перед экспортом
+final_result_dataframe['active_time'] = final_result_dataframe['active_time'].astype(str)
+final_result_dataframe['time_per_one_microtask'] = final_result_dataframe['time_per_one_microtask'].astype(str)
 
-    # инициализируем экспорт
-    writer = ExcelWriter('Yandex_Task1_Result.xlsx',
-                         # engine='xlsxwriter',
-                         datetime_format='hh:mm:ss.000'
-                         )
+# инициализируем экспорт
+writer = ExcelWriter('Yandex_Task1_Result.xlsx',
+                     # engine='xlsxwriter',
+                     datetime_format='hh:mm:ss.000'
+                     )
 
-    final_result_dataframe.to_excel(writer, sheet_name='результат')
-    writer.save()
-    writer.close()
-    print('Результат сохранен в Yandex_Task1_Result.xlsx')
+final_result_dataframe.to_excel(writer, sheet_name='результат')
+writer.save()
+writer.close()
+print('Результат сохранен в Yandex_Task1_Result.xlsx')
