@@ -88,7 +88,7 @@ with open('data_task4_old.txt', 'r', ) as csv_file:
     final_result_dataframe['time_per_one_microtask'] = final_result_dataframe['time_per_one_microtask'].astype(str)
 
     # инициализируем экспорт
-    writer = ExcelWriter('YandexExport.xlsx',
+    writer = ExcelWriter('Yandex_Task1_Result.xlsx',
                          # engine='xlsxwriter',
                          datetime_format='hh:mm:ss.000'
                          )
@@ -96,3 +96,4 @@ with open('data_task4_old.txt', 'r', ) as csv_file:
     final_result_dataframe.to_excel(writer, sheet_name='результат')
     writer.save()
     writer.close()
+    print('Результат сохранен в Yandex_Task1_Result.xlsx')
